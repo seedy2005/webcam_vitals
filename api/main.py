@@ -73,11 +73,13 @@ class AnalyzeResponse(BaseModel):
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"status": "ok", "timestamp": time.time()}
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
+@app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze(req: AnalyzeRequest):
     t0 = time.time()
 
