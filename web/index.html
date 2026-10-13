@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Webcam Vitals — Contactless Heart Rate & Breathing Monitor</title>
+  <meta name="description" content="Estimate heart rate and breathing rate from 30 seconds of face video using only your webcam. No hardware. No data leaves your device." />
+  <meta property="og:title" content="Webcam Vitals — rPPG Heart Rate Monitor" />
+  <meta property="og:description" content="Contactless vitals in 30 seconds. Your webcam is a pulse sensor." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ═══ SITE HEADER ════════════════════════════════════════════════════ -->
+    <header class="site-header">
+      <div class="logo-icon">💓</div>
+      <span class="logo-text">Webcam Vitals</span>
+      <span class="logo-tag">rPPG · Hackathon Build</span>
+    </header>
+
+    <!-- ═══ SCREEN 1: START ════════════════════════════════════════════════ -->
+    <section id="screen-start" class="screen active">
+
+      <div class="hero-section">
+        <div class="hero-eyebrow">
+          <span>🌐</span> No hardware · No upload · Privacy-first
+        </div>
+        <h1 class="hero-title">
+          Your webcam is a<br /><span class="accent">pulse sensor</span>
+        </h1>
+        <p class="hero-subtitle">
+          Contactless heart rate &amp; breathing rate in 30 seconds.
+          Classic rPPG signal processing — everything runs right here in your browser.
+        </p>
+      </div>
+
+      <!-- Mode toggle -->
+      <div class="mode-toggle" role="tablist" aria-label="Scan mode">
+        <button id="mode-live" class="mode-btn active" role="tab" aria-selected="true">
+          📷 Live webcam
+        </button>
+        <button id="mode-upload" class="mode-btn" role="tab" aria-selected="false">
+          🎬 Upload video
+        </button>
+      </div>
+
+      <!-- Live mode section -->
+      <div id="live-section" style="display:flex; flex-direction:column; align-items:center; gap:16px; width:100%">
+        <div class="feature-grid">
+          <div class="feature-item">
+            <div class="feature-icon">❤️</div>
+            <div class="feature-label">Heart Rate</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🌬️</div>
+            <div class="feature-label">Breathing Rate</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <div class="feature-label">Live Waveform</div>
+          </div>
+        </div>
+        <!-- Camera device selector -->
+        <div class="camera-picker-card">
+          <label for="camera-select" class="camera-picker-label">
+            <span>📹 Video Input Device</span>
+            <span class="camera-hint" id="camera-hint">DroidCam / Webcam ready</span>
+          </label>
+          <select id="camera-select" class="camera-select-dropdown" aria-label="Select camera device">
+            <option value="">Detecting cameras...</option>
+          </select>
+        </div>
+
+        <button id="btn-start-scan" class="btn btn-primary" aria-label="Start a live scan">
+          ▶ Start 30-second Scan
+        </button>
+
+        <div class="privacy-badge">
+          🔒 Video never leaves your device. Only color numbers are analyzed.
+        </div>
+      </div>
+
+      <!-- Upload mode section -->
+      <div id="upload-section" style="display:none; flex-direction:column; align-items:center; gap:16px; width:100%">
+        <div id="upload-zone" class="upload-zone" role="button" tabindex="0"
+             aria-label="Click or drag a video file to analyze">
+          <div class="upload-icon">🎬</div>
+          <div class="upload-text">Click or drag a video file here</div>
+          <div class="upload-hint">MP4, WebM, MOV · 30–60 seconds of face video</div>
+        </div>
+        <input type="file" id="file-input" accept="video/*" aria-hidden="true" />
+        <video id="upload-video-el" style="display:none; max-width:100%; border-radius:12px;" muted></video>
+      </div>
+
+      <button id="btn-start-upload" style="display:none"></button>
+
+      <div class="disclaimer-banner">
+        ⚠️ Wellness estimate only. Not a medical device. Does not diagnose any condition.
+        Always consult a healthcare professional for medical concerns.
+      </div>
+
+    </section>
+
+    <!-- ═══ SCREEN 2: SCAN ═════════════════════════════════════════════════ -->
+    <section id="screen-scan" class="screen">
+
+      <div class="scan-layout">
+
+        <!-- Video area -->
+        <div id="video-wrapper" class="video-wrapper detecting">
+          <video id="video-el" autoplay playsinline muted aria-label="Webcam feed"></video>
+          <canvas id="overlay-canvas" aria-hidden="true"></canvas>
+
+          <!-- Countdown ring -->
+          <div class="countdown-ring" aria-live="polite" aria-label="Countdown timer">
+            <svg viewBox="0 0 72 72">
+              <circle class="ring-track" cx="36" cy="36" r="30" />
+              <circle id="ring-prog" class="ring-prog" cx="36" cy="36" r="30"
+                stroke-dasharray="188.5" stroke-dashoffset="188.5" />
+            </svg>
+            <div class="countdown-num" id="countdown-num">30</div>
+          </div>
+
+          <!-- Guidance bar -->
+          <div class="guidance-bar" role="status" aria-live="polite">
+            <div id="guidance-dot" class="guidance-dot amber"></div>
+            <span id="guidance-text">Looking for your face…</span>
+          </div>
+        </div>
+
+        <!-- Live waveform strip -->
+        <div class="card waveform-card">
+          <div class="waveform-header">
+            <div class="waveform-label">
+              <span class="live-dot"></span>
+              Live Pulse Signal
+            </div>
+            <div id="live-hr" class="hr-live">
+              <span id="live-hr-val">--</span>
+              <span class="unit">bpm</span>
+            </div>
+          </div>
+          <canvas id="waveform-canvas" height="80" aria-label="Live pulse waveform"></canvas>
+        </div>
+
+        <!-- Controls -->
+        <div class="scan-controls">
+          <div class="scan-info">
+            <strong>Tips:</strong> Face the light · Stay still · Arm's length from screen
+          </div>
+          <button id="btn-cancel" class="btn btn-danger">✕ Cancel</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══ SCREEN 3: PROCESSING ═══════════════════════════════════════════ -->
+    <section id="screen-processing" class="screen">
+      <div class="card processing-card">
+        <div class="processing-anim" aria-hidden="true">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+        </div>
+        <div class="processing-label">Analyzing your pulse signal…</div>
+        <div class="processing-sub">Running POS algorithm, band-pass filter &amp; FFT</div>
+      </div>
+    </section>
+
+    <!-- ═══ SCREEN 4: RESULTS ══════════════════════════════════════════════ -->
+    <section id="screen-results" class="screen">
+
+      <!-- Main metric cards -->
+      <div class="results-grid">
+
+        <!-- Heart Rate — primary card -->
+        <div class="metric-card primary card glow-green" aria-label="Heart rate result">
+          <div class="metric-eyebrow">❤️ Heart Rate</div>
+          <div id="result-hr" class="metric-value">--</div>
+          <div class="metric-unit">beats per minute</div>
+          <span id="result-confidence" class="confidence-badge High">High</span>
+
+          <!-- Quality bar -->
+          <div class="quality-bar-wrap">
+            <span>Signal quality</span>
+            <div class="quality-bar">
+              <div id="result-snr-fill" class="quality-bar-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breathing Rate -->
+        <div class="metric-card card" aria-label="Breathing rate result">
+          <div class="metric-eyebrow">🌬️ Breathing Rate</div>
+          <div id="result-rr" class="rr-value">--</div>
+          <div class="metric-unit">breaths per minute</div>
+          <span class="estimate-tag">estimate</span>
+        </div>
+
+        <!-- Pulse Waveform -->
+        <div class="metric-card card" aria-label="Pulse waveform">
+          <div class="metric-eyebrow">📈 Pulse Waveform</div>
+          <canvas id="result-waveform-canvas" height="90" style="margin-top:8px"></canvas>
+        </div>
+
+      </div>
+
+      <!-- Warning (shown only when HR is unusual) -->
+      <div id="result-warning" style="display:none; width:100%; background:rgba(255,92,122,0.08);
+           border:1px solid rgba(255,92,122,0.3); border-radius:8px; padding:12px 16px;
+           font-size:0.85rem; color:var(--red-warn)"></div>
+
+      <!-- AI Summary -->
+      <div class="summary-card card" aria-label="Wellness summary">
+        <div class="summary-header">
+          <div class="summary-icon">🤖</div>
+          <div class="summary-title">Wellness Summary</div>
+        </div>
+        <div id="summary-loading" class="summary-loading" style="display:flex">
+          <div class="spinner"></div>
+          Generating summary…
+        </div>
+        <div id="summary-text" class="summary-text" style="display:none"></div>
+      </div>
+
+      <!-- Reference HR comparison -->
+      <div class="reference-card" aria-label="Compare with reference device">
+        <div class="reference-title">
+          🩺 Compare with Reference Device
+        </div>
+        <div class="reference-row">
+          <input
+            type="number"
+            id="ref-hr-input"
+            class="ref-input"
+            placeholder="e.g. 72"
+            min="30" max="200"
+            aria-label="Reference heart rate from pulse oximeter"
+          />
+          <div id="ref-result" class="ref-result">
+            <span style="color:var(--text-muted)">Enter a reading from a pulse oximeter</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="result-disclaimer" role="note">
+        ⚠️ <strong>Wellness estimate, not a medical device.</strong>
+        This app does not diagnose any condition. Readings may be affected by lighting,
+        motion, skin tone and other factors. If you feel unwell, consult a healthcare professional.
+      </div>
+
+      <!-- Actions -->
+      <div class="results-actions">
+        <button id="btn-scan-again" class="btn btn-primary" aria-label="Start a new scan">
+          ↺ Scan Again
+        </button>
+        <button id="btn-share" class="btn btn-secondary" aria-label="Copy results to clipboard"
+                onclick="copyResults()">
+          📋 Copy Results
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ═══ SCREEN 5: ERROR ════════════════════════════════════════════════ -->
+    <section id="screen-error" class="screen">
+      <div class="card error-card">
+        <div class="error-icon">⚠️</div>
+        <h2 id="error-title" class="error-title">Something went wrong</h2>
+        <p id="error-msg" class="error-msg">An unexpected error occurred.</p>
+        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap">
+          <button id="btn-error-retry" class="btn btn-primary">↺ Try Again</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('mode-upload').click(); document.getElementById('screen-start').classList.add('active'); document.getElementById('screen-error').classList.remove('active');">
+            🎬 Use Video Upload
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /#app -->
+
+  <!-- Copy results helper -->
+  <script>
+  function copyResults() {
+    const hr = document.getElementById('result-hr')?.textContent;
+    const rr = document.getElementById('result-rr')?.textContent;
+    const summary = document.getElementById('summary-text')?.textContent;
+    const text = `Webcam Vitals Scan\nHeart Rate: ${hr} bpm\nBreathing Rate: ${rr} breaths/min\n\n${summary}\n\nWellness estimate only. Not a medical device.`;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btn-share');
+      if (btn) { btn.textContent = '✅ Copied!'; setTimeout(() => btn.textContent = '📋 Copy Results', 2000); }
+    });
+  }
+  </script>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Environment variables & secrets
+.env
+*.env
+api/.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Operating system
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE configs
+.vscode/
+.idea/
+*.swp
