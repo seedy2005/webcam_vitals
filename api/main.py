@@ -14,8 +14,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from rppg import process_rppg
-from summary import get_summary
+try:
+    from rppg import process_rppg
+    from summary import get_summary
+except ImportError:
+    try:
+        from .rppg import process_rppg
+        from .summary import get_summary
+    except ImportError:
+        from api.rppg import process_rppg
+        from api.summary import get_summary
 
 app = FastAPI(title="Webcam Vitals API", version="1.0.0")
 

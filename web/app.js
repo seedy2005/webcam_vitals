@@ -18,7 +18,9 @@
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const CONFIG = {
-  API_BASE:         'http://localhost:8000',
+  API_BASE: (window.location.hostname === 'localhost' && window.location.port === '5173')
+    ? 'http://localhost:8000'
+    : '',
   SCAN_DURATION_S:  30,
   WARMUP_S:         5,       // discard first 5 s while AE settles
   TARGET_FPS:       30,
